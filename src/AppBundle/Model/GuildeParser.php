@@ -8,58 +8,115 @@ namespace AppBundle\Model;
  * Date: 11/03/2018
  * Time: 16:14
  */
-trait GuildeParser
+class GuildeParser extends Parsing
 {
-    public $urlGuilde;
+    private $guildeId;
 
-    public $parserLoadGuilde;
+    private $urlGuilde;
 
-    public $guildeLevel;
+    private $urlGuildeMembers;
 
-    public $guildeName;
+    private $parserLoadGuilde;
 
-    public $guildeNbMembers;
-    public $guildeLvlMoy;
+    private $guildeName;
 
-    public $guildeAllianceInfos;
+    private $guildeLevel;
 
-    public $guildeServer;
+    private $guildeNbMembers;
 
-    public $guildeCreatedAt;
+    private $guildeServer;
 
-    public $guildeImg;
+    private $guildeCreatedAt;
 
-    public $guildeAllianceImg;
+    private $guildeImg;
 
+    private $guildeMembers;
 
-    public function initGuildeParser($guildeName)
+    private $guildeMembersPagination;
+
+    private $guildeAllianceName;
+
+    private $guildeAllianceNbGuilde;
+
+    private $guildeAllianceNbMembers;
+
+    private $guildeAllianceImg;
+
+    public function __construct($guildeId)
     {
-        $this->guildeName       = $guildeName;
-        $this->urlGuilde        = $this->url . 'pages-guildes/' . $this->guildeName . '/';
+        parent::__construct($guildeId);
+        $this->guildeId         = $guildeId;
+        $this->urlGuilde        = $this->url . 'pages-guildes/' . $this->guildeId . '/';
         $this->parserLoadGuilde = $this->parser->load($this->urlGuilde);
-        $this->setGuildeLevel();
+    }
+
+    public function setInfos()
+    {
         $this->setGuildeName();
-        $this->setGuildeImg();
         $this->setGuildeNbMembers();
-        $this->setGuildeAllianceImg();
-        $this->setGuildeAllianceInfos();
+        $this->setGuildeLevel();
+        $this->setGuildeImg();
         $this->setGuildeServer();
+    }
+
+    public function setInfosExtends()
+    {
+        $this->setGuildeAllianceImg();
+        $this->setGuildeAllianceName();
+        $this->setGuildeAllianceNbMembers();
+        $this->setGuildeAllianceNbGuilde();
         $this->setGuildeCreatedAt();
     }
 
-    public function getGuildeInfos()
+    public function setMembers()
     {
-        $value = [
-            'name'      => $this->getGuildeName(),
-            'img'       => $this->getGuildeImg(),
-            'level'     => $this->getGuildeLevel(),
-            'nbMembers' => $this->getGuildeNbMembers(),
-            'lvlMoy' => $this->getGuildeLvlMoy(),
-            'server'    => $this->getGuildeServer(),
-            'createdAt' => $this->getGuildeCreatedAt(),
-            'alliance'  => $this->getGuildeAllianceInfos(),
-        ];
-        return $value;
+        $this->setGuildeNbMembers();
+        $this->urlGuildeMembers = $this->urlGuilde . 'membres';
+        $this->setGuildeMembersPagination();
+        $this->setGuildeMembers();
+
+    }
+
+    public function getGuildeMembersPagination()
+    {
+        return $this->guildeMembersPagination;
+    }
+
+    public function setGuildeMembersPagination()
+    {
+        $this->parserLoadGuilde        = $this->parser->load($this->urlGuildeMembers);
+        $nbMembersPerPage              = 25;
+        $this->guildeMembersPagination = ceil($this->getGuildeNbMembers() / $nbMembersPerPage);
+    }
+
+    public function getGuildeMembers()
+    {
+        return $this->guildeMembers;
+    }
+
+    public function setGuildeMembers()
+    {
+        $parser = $this->parser;
+        $url    = $this->urlGuildeMembers;
+        $moy    = 0;
+
+        $membres = [];
+        for ($i = 1; $i <= $this->guildeMembersPagination; $i++) {
+            $parser->load($url . '?page=' . $i);
+            $tableTag = '.ak-guilds table tr';
+            $table    = $parser->find($tableTag);
+            unset($table[0]);
+            foreach ($table as $row) {
+                $membres[] = [
+                    'name'  => $row->find('td a', 0)->text,
+                    'class' => $row->find('td a', 1)->text,
+                    'lvl'   => intval($row->find('td', 2)->text),
+                    'rang'  => $row->find('td', 3)->text,
+                ];
+                $moy       = $moy + intval($row->find('td', 2)->text);
+            }
+        }
+        $this->guildeMembers = $membres;
     }
 
     /**
@@ -78,35 +135,6 @@ trait GuildeParser
         $levelTag          = 'span.ak-directories-level';
         $level             = $this->parserLoadGuilde->find($levelTag, 0)->text;
         $this->guildeLevel = intval(explode(' ', $level)[2]);
-    }
-
-    /**
-     * @return mixed
-     */
-    public function getGuildeAllianceInfos()
-    {
-        return $this->guildeAllianceInfos;
-    }
-
-    /**
-     * @param mixed $guildeAlliance
-     */
-    public function setGuildeAllianceInfos()
-    {
-        $allianceTag          = 'div.ak-character-alliances a';
-        $allianceNbGuildeTag  = 'div.ak-character-alliances span.ak-infos-guildlevel';
-        $allianceNbMembresTag = 'div.ak-character-alliances span.ak-infos-guildmembers';
-
-        $allianceName              = $this->parserLoadGuilde->find($allianceTag, 0)->text;
-        $allianceNbGuildes         = intval(explode(' ', $this->parserLoadGuilde->find($allianceNbGuildeTag, 0)->text)[0]);
-        $allianceNbMembres         = intval(explode(' ', $this->parserLoadGuilde->find($allianceNbMembresTag, 0)->text)[0]);
-        $value                     = [
-            'name'      => $allianceName,
-            'img'       => $this->getGuildeAllianceImg(),
-            'nbGuilde'  => $allianceNbGuildes,
-            'nbMembers' => $allianceNbMembres,
-        ];
-        $this->guildeAllianceInfos = $value;
     }
 
     /**
@@ -231,17 +259,59 @@ trait GuildeParser
     /**
      * @return mixed
      */
-    public function getGuildeLvlMoy()
+    public function getGuildeAllianceName()
     {
-        return $this->guildeLvlMoy;
+        return $this->guildeAllianceName;
     }
 
     /**
-     * @param mixed $guildeLvlMoy
+     * @param mixed $guildeAllianceName
      */
-    public function setGuildeLvlMoy($guildeLvlMoy)
+    public function setGuildeAllianceName()
     {
-        $this->guildeLvlMoy = $guildeLvlMoy;
+        $allianceTag              = 'div.ak-character-alliances a';
+        $allianceName             = $this->parserLoadGuilde->find($allianceTag, 0)->text;
+        $value                    = $allianceName;
+        $this->guildeAllianceName = $value;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getGuildeAllianceNbGuilde()
+    {
+        return $this->guildeAllianceNbGuilde;
+    }
+
+    /**
+     * @param mixed $guildeAllianceNbGuilde
+     */
+    public function setGuildeAllianceNbGuilde()
+    {
+        $allianceNbGuildeTag          = 'div.ak-character-alliances span.ak-infos-guildlevel';
+        $allianceNbGuildes            = intval(explode(' ', $this->parserLoadGuilde->find($allianceNbGuildeTag, 0)->text)[0]);
+        $value                        = $allianceNbGuildes;
+        $this->guildeAllianceNbGuilde = $value;
+    }
+
+    /**
+     * @return mixed
+     */
+    public function getGuildeAllianceNbMembers()
+    {
+        return $this->guildeAllianceNbMembers;
+    }
+
+    /**
+     * @param mixed $guildeAllianceNbMembers
+     */
+    public function setGuildeAllianceNbMembers()
+    {
+        $allianceNbMembresTag = 'div.ak-character-alliances span.ak-infos-guildmembers';
+
+        $allianceNbMembres             = intval(explode(' ', $this->parserLoadGuilde->find($allianceNbMembresTag, 0)->text)[0]);
+        $value                         = $allianceNbMembres;
+        $this->guildeAllianceNbMembers = $value;
     }
 
 }

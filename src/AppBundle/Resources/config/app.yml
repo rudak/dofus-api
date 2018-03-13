@@ -1,15 +1,15 @@
-# index
-index:
-    path: /
-    defaults: { _controller: AppBundle:Default:index}
+# guilde infos
+guildeInfos:
+    path: /guilde/infos
+    defaults: { _controller: AppBundle:Default:guildeInfos}
 
-
-# get guilde members
-getGuildeMembers:
-    path: /get/guilde/members/{guildeId}
+# guilde members
+guildeMembers:
+    path: /guilde/members
     defaults: { _controller: AppBundle:Default:getGuildeMembers}
 
-# get guilde infos
-getGuildeInfos:
-    path: /get/guilde/infos/{guildeId}
-    defaults: { _controller: AppBundle:Default:getGuildeInfos}
+
+# dev
+dev:
+    path: /dev
+    defaults: { _controller: AppBundle:Default:dev}
