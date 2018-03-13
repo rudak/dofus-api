@@ -1,0 +1,4 @@
+guildeInfos:
+    path: /infos/{id}
+    defaults: { _controller: AppBundle:Api:infos}
+

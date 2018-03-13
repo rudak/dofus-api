@@ -1,0 +1,7 @@
+guilde:
+    prefix: /guilde
+    resource: '@AppBundle/Resources/config/routing/guilde.yml'
+
+guilde:
+    prefix: /guilde
+    resource: '@AppBundle/Resources/config/routing/user.yml'

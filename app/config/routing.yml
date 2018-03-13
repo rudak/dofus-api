@@ -1,2 +1,6 @@
 app:
     resource: '@AppBundle/Resources/config/app.yml'
+
+api:
+    prefix: /api
+    resource: '@AppBundle/Resources/config/api.yml'
